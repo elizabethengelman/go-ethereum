@@ -58,6 +58,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	whisper "github.com/ethereum/go-ethereum/whisper/whisperv6"
 	"gopkg.in/urfave/cli.v1"
+	"github.com/ethereum/go-ethereum/statediff"
 )
 
 var (
@@ -181,6 +182,10 @@ var (
 	LightKDFFlag = cli.BoolFlag{
 		Name:  "lightkdf",
 		Usage: "Reduce key-derivation RAM & CPU usage at some expense of KDF strength",
+	}
+	StateDiffFlag = cli.BoolFlag{
+		Name: "stateDiff",
+		Usage: "Store state diff on each new block",
 	}
 	// Dashboard settings
 	DashboardEnabledFlag = cli.BoolFlag{
@@ -1322,6 +1327,19 @@ func RegisterEthStatsService(stack *node.Node, url string) {
 		return ethstats.New(url, ethServ, lesServ)
 	}); err != nil {
 		Fatalf("Failed to register the Ethereum Stats service: %v", err)
+	}
+}
+
+func RegisterStateDiffService(stack *node.Node) {
+	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
+		var ethServ *eth.Ethereum
+		ctx.Service(&ethServ)
+		chainDb := ethServ.ChainDb()
+		blockchain := ethServ.BlockChain()
+
+		return statediff.NewStateDiffService(chainDb, blockchain)
+	}); err != nil {
+		Fatalf("Failed to register State Diff Service", err)
 	}
 }
 
